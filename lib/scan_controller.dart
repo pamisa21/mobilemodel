@@ -5,8 +5,7 @@ import 'package:flutter_tflite/flutter_tflite.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-class ScanController extends GetxController{
-
+class ScanController extends GetxController {
   @override
   void onInit() {
     // TODO: implement onInit
@@ -26,25 +25,21 @@ class ScanController extends GetxController{
   late List<CameraDescription> cameras;
   var isCameraInitialized = false.obs;
   var cameraCount = 0;
-  var handSignResult = ''.obs;
+  var categoryResult = ''.obs;
 
   initCamera() async {
-    if(await Permission.camera.request().isGranted){
+    if (await Permission.camera.request().isGranted) {
       cameras = await availableCameras();
-      cameraController = CameraController(
-          cameras[0],
-          ResolutionPreset.max
-      );
-      await cameraController.initialize().then((value){
-        cameraController.startImageStream((image){
+      cameraController = CameraController(cameras[0], ResolutionPreset.max);
+      await cameraController.initialize().then((value) {
+        cameraController.startImageStream((image) {
           cameraCount++;
-          if(cameraCount %10 == 0){
+          if (cameraCount % 10 == 0) {
             cameraCount = 0;
             imageClassifier(image);
           }
           update();
         });
-
       });
       isCameraInitialized(true);
       update();
@@ -55,18 +50,18 @@ class ScanController extends GetxController{
 
   Future<void> initTFLite() async {
     await Tflite.loadModel(
-        model: "lib/pangalansaimongmodel.tflite",
-        labels: "lib/labelsaimongmodel.txt",
+        model: "lib/model.tflite",
+        labels: "lib/labels.txt",
         isAsset: true,
         numThreads: 1,
-        useGpuDelegate: false
-    );
+        useGpuDelegate: false);
   }
 
-  imageClassifier(CameraImage image) async{
-    var classifier = await Tflite.runModelOnFrame(bytesList: image.planes.map((e){
-      return e.bytes;
-    }).toList(),
+  imageClassifier(CameraImage image) async {
+    var classifier = await Tflite.runModelOnFrame(
+        bytesList: image.planes.map((e) {
+          return e.bytes;
+        }).toList(),
         asynch: true,
         imageHeight: image.height,
         imageWidth: image.width,
@@ -74,15 +69,13 @@ class ScanController extends GetxController{
         imageStd: 127.5,
         numResults: 2,
         rotation: 90,
-        threshold: 0.4
-    );
+        threshold: 0.4);
 
-    if(classifier != null){
-      String handsign = classifier[0]['label'];
-      print(handsign);
+    if (classifier != null) {
+      String category = classifier[0]['label'];
+      print(category);
 
-      handSignResult.value = 'Hand Sign: ${handsign}';
+      categoryResult.value = 'Category: ${category}';
     }
   }
-
 }
